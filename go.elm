@@ -176,6 +176,10 @@ mousePosToCoords (w,h) boardSize (sx,sy) =
      then Just (x,y)
      else Nothing
 
+showCaptures : Captures -> String
+showCaptures (bc, wc) =
+  "Black captured " ++ toString bc ++ ", White captured " ++ toString wc
+
 playerColor : Player -> Color
 playerColor p = case p of
   White -> white
@@ -231,7 +235,7 @@ display ((w,h), ui, select) (GameState gs) =
 
 -- [ Webservice ]
 
-serverURL = "http://localhost:5000/"
+serverURL = "http://0.0.0.0:5000/"
 
 gameStateAdr : Signal.Mailbox GameState
 gameStateAdr = Signal.mailbox initGame
@@ -294,10 +298,13 @@ port gnugo =
 -- [ Main ]
 
 view : Address UserInput -> (WinDims, UserInput, Selection, GameState) -> Html
-view address (wh, ui, select, GameState gs) = div [] [
-  fromElement (display (wh, ui, select) (GameState gs)),
-  button [ onClick address Passed ] [ Html.text "Pass" ],
-  button [ onClick address (NewGame gs.size) ] [ Html.text "New Game" ] ]
+view address (wh, ui, select, GameState gs) =
+  div []
+    [ fromElement (display (wh, ui, select) (GameState gs))
+    , div [] [ Html.text (showCaptures gs.captures) ]
+    , button [ onClick address Passed ] [ Html.text "Pass" ]
+    , button [ onClick address (NewGame gs.size) ] [ Html.text "New Game" ]
+    ]
 
 main : Signal Html
 main = (\x -> view otherUserInputAdr.address x) <~ (Signal.Extra.zip4 Window.dimensions userInput selectedSgn gameStateAdr.signal)
