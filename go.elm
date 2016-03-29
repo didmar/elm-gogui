@@ -20,7 +20,8 @@ import Html.Events exposing (onClick)
 import Json.Decode exposing (Decoder, (:=), array, string, int, map, object4, succeed)
 import Http
 import Http exposing (Error(BadResponse))
-import Html exposing (Html, div, fromElement, button, text)
+import Html exposing (Html, Attribute, div, fromElement, button, text)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Task exposing (Task, andThen, fail, succeed, onError)
 import Char exposing (toCode, fromCode)
@@ -95,15 +96,17 @@ type UserInput = NoInput | Played Coords | Passed | NewGame BoardSize
 
 type alias WinDims    = (Int, Int)
 
-winDimsAndMousePos : Signal (WinDims, (Int, Int))
-winDimsAndMousePos = Signal.map2 (,) Window.dimensions Mouse.position
+boardDimsSgn : Signal WinDims
+boardDimsSgn =
+  let (num, den) = (3, 4) -- ratio of window height that the board display will take
+  in Signal.map (\(w,h) -> (h * num // den, h * num // den)) Window.dimensions
 
 boardSizeSgn = Signal.map (\(GameState gs) -> gs.size) gameStateAdr.signal
 
 clickSgn : Signal UserInput
 clickSgn =
   let f wh boardSize xy = withDefault NoInput (Maybe.map (\coords -> Played coords) (mousePosToCoords wh boardSize xy))
-  in sampleOn Mouse.clicks (Signal.map3 f Window.dimensions boardSizeSgn Mouse.position)
+  in sampleOn Mouse.clicks (Signal.map3 f boardDimsSgn boardSizeSgn Mouse.position)
 
 -- Mailbox for receiving inputs from buttons
 otherUserInputAdr : Signal.Mailbox UserInput
@@ -113,7 +116,7 @@ type alias Selection = Maybe Coords
 
 quietSelectedSgn : Signal Selection
 quietSelectedSgn =
-  sampleOn Mouse.position (Signal.map3 mousePosToCoords Window.dimensions boardSizeSgn Mouse.position)
+  sampleOn Mouse.position (Signal.map3 mousePosToCoords boardDimsSgn boardSizeSgn Mouse.position)
 
 verboseSelectedSgn : Signal Selection
 verboseSelectedSgn =
@@ -297,14 +300,25 @@ port gnugo =
 
 -- [ Main ]
 
+boardStyle : WinDims -> Attribute
+boardStyle (w,h) =
+  style
+    [ ("padding", "0px")
+    , ("margin", "0px")
+    , ("width", toString w ++ "px")
+    , ("height", toString h ++ "px")
+    , ("overflow", "hidden")
+    , ("position", "relative")
+    ]
+
 view : Address UserInput -> (WinDims, UserInput, Selection, GameState) -> Html
 view address (wh, ui, select, GameState gs) =
   div []
-    [ fromElement (display (wh, ui, select) (GameState gs))
+    [ div [ boardStyle wh ] [ fromElement (display (wh, ui, select) (GameState gs)) ]
     , div [] [ Html.text (showCaptures gs.captures) ]
     , button [ onClick address Passed ] [ Html.text "Pass" ]
     , button [ onClick address (NewGame gs.size) ] [ Html.text "New Game" ]
     ]
 
 main : Signal Html
-main = (\x -> view otherUserInputAdr.address x) <~ (Signal.Extra.zip4 Window.dimensions userInput selectedSgn gameStateAdr.signal)
+main = (\x -> view otherUserInputAdr.address x) <~ (Signal.Extra.zip4 boardDimsSgn userInput selectedSgn gameStateAdr.signal)
