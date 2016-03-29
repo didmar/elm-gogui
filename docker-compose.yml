@@ -1,0 +1,8 @@
+frontend:
+  image: elm-gogui
+  ports:
+    - "8000:8000"
+backend:
+  image: gnugo-as-a-service
+  ports:
+    - "5000:5000"

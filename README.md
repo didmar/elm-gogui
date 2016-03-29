@@ -15,3 +15,9 @@ How to build and run
     elm-package install
     elm-reactor
     x-www-browser http://0.0.0.0:8000/go.elm
+
+3. Alternatively, use Docker (build gnugo-as-a-service Docker first):
+
+    docker build -t elm-gogui .
+    docker-compose up
+
