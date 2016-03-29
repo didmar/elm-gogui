@@ -280,7 +280,7 @@ mergeInfos (b,s,c) (l,p) = GameState {board=b, size=s, nextPlayer=p, lastMove=l,
 updateGameState : Task Http.Error ()
 updateGameState =
   (Task.map2 mergeInfos getBoard getLastMoveAndNextPlayer)
-  `Task.andThen` (\board -> Signal.send gameStateAdr.address board)
+  `Task.andThen` (\gs -> Signal.send gameStateAdr.address gs)
 
 sendCommand : (UserInput, GameState) -> Task Http.Error String
 sendCommand (ui, GameState gs) =
